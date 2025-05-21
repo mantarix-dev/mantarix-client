@@ -1,0 +1,23 @@
+name: mantarix_audio_recorder
+description: Mantarix AudioRecorder control
+repository: https://github.com/mantarix-dev/mantarix/packages/mantarix_audio_recorder
+version: 0.1.0
+
+environment:
+  sdk: '>=3.2.3 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  collection: ^1.16.0
+  record: ^5.1.2
+
+  mantarix:
+    path: ../mantarix/
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
