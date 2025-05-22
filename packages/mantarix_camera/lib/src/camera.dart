@@ -26,48 +26,46 @@ class CameraControl extends StatefulWidget {
 
 class _CameraControlState extends State<CameraControl> {
   CameraController? _controller;
+  List<CameraDescription>? _cameras;
+  int _selectedCameraIndex = 0;
 
   Future<List<CameraDescription>> _initCameras() async {
-    var cameras = await availableCameras();
-    var resolutionPreset =
-        parseResolutionPreset(widget.control.attrString("resolutionPreset"));
-    var imageFormatGroup =
-        parseImageFormatGroup(widget.control.attrString("imageFormatGroup"));
+    _cameras = await availableCameras();
     var enableAudio = widget.control.attrBool("enableAudio", true)!;
+    var resolutionPreset = parseResolutionPreset(widget.control.attrString("resolutionPreset"));
+    var imageFormatGroup = parseImageFormatGroup(widget.control.attrString("imageFormatGroup"));
     // setState(() {
     _controller = CameraController(
-      cameras[0], ResolutionPreset.medium,
-      enableAudio: enableAudio, //imageFormatGroup: imageFormatGroup
+      _cameras![_selectedCameraIndex],
+      resolutionPreset ?? ResolutionPreset.medium,
+      enableAudio: enableAudio,
+      imageFormatGroup: imageFormatGroup,
     );
     // });
-    return cameras;
+    return _cameras!;
   }
 
   @override
   void initState() {
     super.initState();
-    var cameras = _initCameras();
+    _initCameraAndController();
+  }
 
-    debugPrint("Camera.initState($cameras)");
-    _controller?.initialize().then((_) {
-      if (!mounted) {
-        return;
-      }
+  Future<void> _initCameraAndController() async {
+    try {
+      var cameras = await _initCameras();
+      debugPrint("Camera.initState($cameras)");
+      await _controller?.initialize();
+      if (!mounted) return;
       setState(() {});
-    }).catchError((Object e) {
-      // https://github.com/flutter/flutter/issues/69298
+    } catch (e) {
       if (e is CameraException) {
         debugPrint("CAMERA ERROR: ${e.code} = ${e.description}");
-        /*switch (e.code) {
-          case 'CameraAccessDenied':
-            break;
-          default:
-            break;
-        }*/
       }
-    });
+    }
+
     _controller?.addListener(() {
-      debugPrint("CAMERA  NOTIFIER: ${_controller?.value}");
+      debugPrint("CAMERA NOTIFIER: ${_controller?.value}");
     });
   }
 
@@ -114,6 +112,19 @@ class _CameraControlState extends State<CameraControl> {
     return null;
   }
 
+  Future<void> switchCamera() async {
+    if (_cameras == null || _cameras!.isEmpty) return;
+
+    _selectedCameraIndex = (_selectedCameraIndex + 1) % _cameras!.length;
+    _controller?.dispose();
+
+    try {
+      await _initCameraAndController();
+    } catch (e) {
+      debugPrint("CAMERA SWITCH ERROR: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     bool disabled = widget.control.isDisabled || widget.parentDisabled;
@@ -122,9 +133,7 @@ class _CameraControlState extends State<CameraControl> {
     var zoomLevel = widget.control.attrDouble("zoomLevel");
 
     () async {
-      if (!kIsWeb &&
-          exposureMode != null &&
-          parseExposureMode(exposureMode) != null) {
+      if (!kIsWeb && exposureMode != null && parseExposureMode(exposureMode) != null) {
         await _controller?.setExposureMode(parseExposureMode(exposureMode)!);
       }
 
@@ -132,7 +141,7 @@ class _CameraControlState extends State<CameraControl> {
         await _controller?.setExposureOffset(exposureOffset);
       }
 
-      if (zoomLevel != null && false) {
+      if (!kIsWeb && zoomLevel != null) {
         //  && 1.0 <= zoomLevel && zoomLevel <= _controller.getMaxZoomLevel()
         await _controller?.setZoomLevel(zoomLevel);
       }
@@ -152,6 +161,9 @@ class _CameraControlState extends State<CameraControl> {
             debugPrint("CAMERA.stopRecording()");
             var output = await stopRecording();
             return output?.path;
+          case "switch_camera":
+            await switchCamera();
+            return null;
           default:
             debugPrint("CAMERA unknown method: $methodName");
             break;
