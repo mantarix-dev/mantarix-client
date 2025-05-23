@@ -164,6 +164,13 @@ class _CameraControlState extends State<CameraControl> {
           case "switch_camera":
             await switchCamera();
             return null;
+          case "initialized":
+            debugPrint("CAMERA.initialized()");
+            if (_cameras == null || _cameras!.isEmpty) {
+              return "0";
+            }
+            int o = _cameras!.length;
+            return "$o";
           default:
             debugPrint("CAMERA unknown method: $methodName");
             break;
