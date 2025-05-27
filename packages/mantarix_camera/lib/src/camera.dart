@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:camera/camera.dart';
 import 'package:mantarix/mantarix.dart';
 import 'package:flutter/foundation.dart';
@@ -151,8 +153,9 @@ class _CameraControlState extends State<CameraControl> {
         switch (methodName) {
           case "capture_image":
             debugPrint("CAMERA.captureImage()");
-            await captureImage();
-            break;
+            var output = await captureImage();
+            Uint8List bytes = await output!.readAsBytes();
+            return base64Encode(bytes);
           case "start_video_recording":
             debugPrint("CAMERA.startRecording()");
             startRecording();
@@ -160,7 +163,8 @@ class _CameraControlState extends State<CameraControl> {
           case "stop_video_recording":
             debugPrint("CAMERA.stopRecording()");
             var output = await stopRecording();
-            return output?.path;
+            Uint8List bytes = await output!.readAsBytes();
+            return base64Encode(bytes);
           case "switch_camera":
             await switchCamera();
             return null;
